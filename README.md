@@ -1,154 +1,285 @@
-# Catalyst — ROS 2 control + vision helper scripts
+# Catalyst (ROS 2 + Gazebo Sim + MoveIt 2)
 
-This repo is a small collection of **ROS 2 (rclpy) helper nodes** used around the *Catalyst* robot stack:
-- Publish simulated joint states + a simple TF for visualization.
-- View camera topics (RGB / Depth / Stereo / combined dashboard).
-- Send motion goals either as:
-  - **JointTrajectory** goals (controller action interface), or
-  - **MoveIt 2 MoveGroup** pose goals (a simple “PnP loop”).
+This repository contains a **ROS 2 simulation + MoveIt 2 planning setup** for the **Catalyst** robot, plus a small toolset of Python nodes for:
 
->  ⚠️ **Important**
-> - **End effector is not added yet** (e.g., a **gripper**). Current scripts assume the kinematic chain ends at `link_five`.
-> - The “pick & place” loop is **still clunky / not fully perfect** (WIP). It moves between poses, but planning/constraints may fail and there’s no grasping logic yet.
-> - Some of the PnP roughness is due to **inverse kinematics limits** (the arm is 5‑DOF, so many full 6D pose goals are over‑constrained).
-> - **Velocity & acceleration profiles were heavily edited** compared to the original baseline values.
->   The current known edits are summarized in **Motion profile tuning (velocity & acceleration)** below.
+- running a Gazebo Sim (Fortress/Garden) scene with `gz_ros2_control`
+- streaming simple joint trajectories to a `JointTrajectoryController`
+- sending MoveIt `MoveGroup` action goals (end-effector pose A/B loop)
+- spawning and bridging a **static RGB/Depth/Stereo camera rig** and visualizing it with an OpenCV viewer
 
+> ⚠️ Note: the MoveIt pose-loop demo is functional but still “demo-grade” (tuning/robustness is not finished). See **Known issues & limitations**.
 
 ## Demo video
 
-
-
-
 https://github.com/user-attachments/assets/fa072503-8ad9-4ba6-b8ab-829e8f4bf1de
-
-
-
-
-
 ---
 
-## Repository layout
+## Repo layout
 
 ```
-Catalyst/
-  state_publisher.py         # publishes /joint_states + TF (odom->base_link)
-  camera_viewer.py           # OpenCV viewer for ROS Image topics (RGB/Depth/Stereo/combined)
-  send_trajectory.py         # FollowJointTrajectory action client (A<->B loop)
-  send_trajectory_pnp.py     # MoveIt MoveGroup action client (pose A<->B loop)
+Catalyst/                       # ROS 2 package (ament_python)
+  package.xml
+  setup.py
+  setup.cfg
+  config/
+    Catalyst_controller.yaml
+  launch/
+    demo.launch.py              # RViz-only: fake joint_state publisher
+    gazebo.launch.py            # Gazebo Sim + controllers + optional trajectory streamer + camera spawn/bridge
+    moveit.launch.py            # Gazebo Sim + controllers + MoveIt move_group + RViz
+    pnp.launch.py               # Gazebo Sim + controllers + MoveIt move_group + EE pose A/B loop sender
+  urdf/
+    Catalyst.urdf.xml           # robot + gz_ros2_control plugin
+    Catalyst.rviz               # RViz config for demo.launch.py
+    camera.sdf                  # static camera rig (RGB + depth + stereo)
+    camera.urdf.xml             # URDF version of the camera rig (mostly for visualization)
+    meshes/
+  worlds/
+    Catalyst_empty_world.sdf    # includes Sensors system plugin
+    Catalyst_green_cube.sdf
+  Catalyst/                     # python nodes (rclpy)
+    state_publisher.py
+    send_trajectory.py
+    send_trajectory_pnp.py
+    camera_viewer.py
+
+Catalyst_moveit_config/         # MoveIt Setup Assistant output (ament_cmake)
+  config/
+  launch/
+  package.xml
+  CMakeLists.txt
 ```
 
----
+### Important detail about MoveIt config files
+The **Python package `Catalyst` installs the MoveIt config files** from `Catalyst_moveit_config/config/*` into:
 
-## Prerequisites
+```
+share/Catalyst/moveit_config/
+```
 
-You’ll need a working ROS 2 environment with the following packages available:
-
-- `rclpy`, `tf2_ros`, `sensor_msgs`, `geometry_msgs`
-- For trajectories: `control_msgs`, `trajectory_msgs`
-- For MoveIt loop: `moveit_msgs`, `shape_msgs` (and MoveIt 2 running in the background)
-- For camera viewer: `opencv-python` (or system OpenCV), `numpy`, `cv_bridge`
-
-> Tip: if your workspace is ROS 2 Humble / Iron etc., make sure you source it before running anything:
->
-> ```bash
-> source /opt/ros/<distro>/setup.bash
-> ```
+That’s why the custom launch files under `Catalyst/launch/` reference `.../share/Catalyst/moveit_config/...`.
 
 ---
 
-## Build & run (recommended: `ros2 run`)
+## Requirements
 
-### 0) Build the workspace
+This codebase is intended for:
 
-These scripts are intended to be run as **ROS 2 nodes** using `ros2 run`.
+- **ROS 2 Humble**
+- **Gazebo Sim** (Fortress / Garden via `ros_gz_sim`)
+- **MoveIt 2**
+- `ros2_control` + `gz_ros2_control`
+- OpenCV + `cv_bridge` (for the camera viewer)
 
-1. Put this repo inside a colcon workspace:
+If you already have ROS 2 set up, the most reliable way to pull dependencies is:
 
 ```bash
-mkdir -p ~/ws_catalyst/src
-# copy the repo here
-cd ~/ws_catalyst
-colcon build --symlink-install
+rosdep update
+rosdep install --from-paths src --ignore-src -r -y
+```
+
+> Note: `package.xml` may not list every runtime dependency used by the Python nodes (e.g. `moveit_msgs`, `control_msgs`, `trajectory_msgs`, `geometry_msgs`, `cv_bridge`, etc.). If `rosdep` misses anything, install the missing ROS packages based on the error messages.
+
+---
+
+## Build
+
+1) Create a workspace and put the repo in `src/`:
+
+```bash
+mkdir -p ~/catalyst_ws/src
+cd ~/catalyst_ws/src
+# copy/clone this repo here so you have: ~/catalyst_ws/src/Catalyst/
+```
+
+2) Build:
+
+```bash
+cd ~/catalyst_ws
+source /opt/ros/humble/setup.bash
+colcon build --symlink-install --packages-select Catalyst
 source install/setup.bash
 ```
 
-2. Confirm the package is discoverable:
+---
+
+## Launch files (what each one does)
+
+### 1) RViz-only demo (no Gazebo)
+Publishes a **synthetic `/joint_states`** stream (sinusoidal joints) so you can view the model in RViz without sim.
 
 ```bash
-ros2 pkg list | grep -i catalyst
+ros2 launch Catalyst demo.launch.py
 ```
 
-> If this folder is **not yet** an `ament_python` package (no `package.xml` / `setup.py`), convert it (see **Packaging notes** below).
-
-
-> Replace `<catalyst_pkg>` with your actual ROS 2 package name (commonly `catalyst`).
-### 1) State publisher (joint states + TF)
-
-Publishes:
-- `joint_states` (`sensor_msgs/JointState`) with:
-  `joint_one .. joint_five`
-- TF `odom -> base_link` (simple circular motion, useful for visualization)
-
-```bash
-ros2 run catalyst state_publisher
-```
-
-Use this when you want *something* publishing joint states/TF for RViz/visual debugging.
+What runs:
+- `robot_state_publisher` using `urdf/Catalyst.urdf.xml`
+- `Catalyst/state_publisher.py` publishing `/joint_states`
+- RViz using `urdf/Catalyst.rviz`
 
 ---
 
-### 2) Camera viewer
-
-`camera_viewer.py` opens an OpenCV window and subscribes to image topics.
-
-Default topic:
-- `/cam/rgb/image_raw`
-
-Quit:
-- press **q** in the OpenCV window
-
-#### A) View a single RGB topic
+### 2) Gazebo simulation (empty world) + controllers + optional joint trajectory streamer + camera
 
 ```bash
-ros2 run catalyst camera_viewer --ros-args -p topic:=/cam/rgb/image_raw
+ros2 launch Catalyst gazebo.launch.py
 ```
 
-#### B) View a depth topic (auto depth visualization)
+What runs:
+- Gazebo Sim (`ros_gz_sim`) with `worlds/Catalyst_empty_world.sdf`
+- spawns the robot from `/robot_description`
+- spawns controllers (see **Controllers** section)
+- bridges `/clock` from Gazebo → ROS 2
+- spawns a **static camera rig** (from `urdf/camera.sdf`)
+- bridges camera topics (RGB + depth + stereo)
+- optionally runs `send_trajectory` after a short delay (continuous motion demo)
+
+Useful launch args (current behavior):
+
+```bash
+# disable trajectory streamer
+ros2 launch Catalyst gazebo.launch.py run_streamer:=false
+
+# change which topic the OpenCV viewer should subscribe to (viewer is usually run separately)
+ros2 launch Catalyst gazebo.launch.py camera_topic:=/cam/rgb/image_raw
+```
+
+---
+
+### 3) MoveIt + Gazebo simulation (green cube world)
+
+```bash
+ros2 launch Catalyst moveit.launch.py
+```
+
+What runs:
+- Gazebo Sim with `worlds/Catalyst_green_cube.sdf`
+- robot spawn + controllers + `/clock` bridge
+- MoveIt `move_group`
+- RViz using `moveit_config/moveit.rviz`
+
+---
+
+### 4) Pose-loop “pick & place” demo (MoveIt action client)
+Despite the name (`pnp.launch.py`), this is currently an **end-effector pose A/B loop** driven by a MoveIt `MoveGroup` action client.
+
+```bash
+ros2 launch Catalyst pnp.launch.py
+```
+
+What runs:
+- Gazebo Sim with `worlds/Catalyst_green_cube.sdf`
+- robot spawn + controllers + `/clock` bridge
+- MoveIt `move_group`
+- after ~6 seconds, runs `ros2 run Catalyst.send_trajectory_pnp` (pose loop)
+
+Tip: this launch does **not** start RViz. You can start it manually:
+
+```bash
+RVIZ_CFG=$(ros2 pkg prefix Catalyst)/share/Catalyst/moveit_config/moveit.rviz
+rviz2 -d "$RVIZ_CFG"
+```
+
+---
+
+## Controllers
+
+Controller configuration file:
+
+- `Catalyst/config/Catalyst_controller.yaml`
+
+Controllers used by launch files:
+
+- `arm_controller` (JointTrajectoryController)
+- `arm_broadcaster` (JointStateBroadcaster)
+
+Check controller status:
+
+```bash
+ros2 control list_controllers
+ros2 control list_hardware_interfaces
+```
+
+---
+
+## Nodes / console scripts
+
+These executables are registered in `setup.py`:
+
+- `state_publisher` → publishes fake `/joint_states` for RViz-only demo
+- `send_trajectory` → sends alternating A/B joint goals via `/arm_controller/follow_joint_trajectory`
+- `camera_viewer` → OpenCV visualizer for RGB/depth/stereo topics
+
+Run a node directly (after `source install/setup.bash`):
+
+```bash
+ros2 run Catalyst send_trajectory
+```
+
+> Note: `setup.py` currently declares a `send_trajectory_moveit` console script, but the corresponding Python module is not present in the repo. See **Known issues & limitations**.
+
+---
+
+## Camera system
+
+### Camera model
+The camera rig is defined in:
+
+- `urdf/camera.sdf` (used for spawning into Gazebo)
+- `urdf/camera.urdf.xml` (URDF version; mostly for visualization)
+
+It contains:
+
+- RGB camera:  `/cam/rgb/image_raw` (1280×720 @ 30 Hz)
+- Depth camera: `/cam/depth/image_raw` (640×480 @ 30 Hz)
+- Stereo cameras:
+  - `/cam/stereo/left/image_raw`
+  - `/cam/stereo/right/image_raw`
+
+Gazebo will also publish corresponding `camera_info` topics (bridged in `gazebo.launch.py`):
+
+- `/cam/rgb/camera_info`, `/cam/depth/camera_info`, `/cam/stereo/left/camera_info`, `/cam/stereo/right/camera_info`
+
+### Start the camera (recommended: via gazebo.launch)
+
+```bash
+ros2 launch Catalyst gazebo.launch.py
+```
+
+This launch **spawns** the camera and starts a `ros_gz_bridge parameter_bridge` for the topics.
+
+### Start the camera viewer (RGB / Depth / Stereo / Combined)
+
+> Gazebo camera streams are typically **BEST_EFFORT QoS**, so make sure your subscribers handle that (the provided viewer does).
+
+**RGB only**
+
+```bash
+ros2 run Catalyst camera_viewer --ros-args \
+  -p topic:=/cam/rgb/image_raw \
+  -p window_name:='Catalyst RGB'
+```
+
+**Depth (colormapped)**
 
 ```bash
 ros2 run catalyst camera_viewer --ros-args \
   -p topic:=/cam/depth/image_raw \
-  -p depth:=true
+  -p depth:=true \
+  -p window_name:='Catalyst Depth'
 ```
 
-#### C) Stereo mode (left + right → disparity preview)
+**Stereo depth-from-disparity preview**
 
 ```bash
 ros2 run catalyst camera_viewer --ros-args \
   -p stereo_mode:=true \
   -p left_topic:=/cam/stereo/left/image_raw \
-  -p right_topic:=/cam/stereo/right/image_raw
+  -p right_topic:=/cam/stereo/right/image_raw \
+  -p window_name:='Catalyst Stereo'
 ```
 
-Useful tuning knobs (stereo):
-- `stereo_baseline_m` (default `0.06`)
-- `stereo_hfov_rad` (default `1.047`)
-- `stereo_num_disparities` (must be multiple of 16)
-- `stereo_block_size` (odd)
-
-Example with a more “aggressive” matcher:
-
-```bash
-ros2 run catalyst camera_viewer --ros-args \
-  -p stereo_mode:=true \
-  -p stereo_num_disparities:=160 \
-  -p stereo_block_size:=9
-```
-
-#### D) Combined dashboard (Stereo + RGB + Depth)
-
-Shows a 2×2 dashboard (left, right, rgb, depth):
+**Combined dashboard (Left + Right + RGB + Depth)**
 
 ```bash
 ros2 run catalyst camera_viewer --ros-args \
@@ -156,178 +287,60 @@ ros2 run catalyst camera_viewer --ros-args \
   -p left_topic:=/cam/stereo/left/image_raw \
   -p right_topic:=/cam/stereo/right/image_raw \
   -p rgb_topic:=/cam/rgb/image_raw \
-  -p depth_topic:=/cam/depth/image_raw
+  -p depth_topic:=/cam/depth/image_raw \
+  -p window_name:='Catalyst Camera Dashboard'
 ```
 
-Other helpful params:
-- `window_name` (default `"Camera Feed"`)
-- `fps` (GUI refresh rate, default `30.0`)
-- `print_encoding_once` (default `true`)
+Quit the viewer by focusing the OpenCV window and pressing **`q`**.
+
+### Camera debugging commands
+
+List camera topics:
+
+```bash
+ros2 topic list | grep -E '^/cam'
+```
+
+Echo camera messages (use BEST_EFFORT):
+
+```bash
+ros2 topic echo /cam/rgb/image_raw --qos-reliability best_effort
+ros2 topic echo /cam/rgb/camera_info --qos-reliability best_effort
+```
+
+If you see topics but no frames:
+- confirm the **Sensors** system plugin is present in the world (it is included in `worlds/Catalyst_empty_world.sdf`)
+- confirm the `ros_gz_bridge parameter_bridge` is running
 
 ---
 
-### 3) Send joint trajectories (controller action client)
+## Pose-loop parameters (send_trajectory_pnp)
 
-`send_trajectory.py` alternates goals **A ↔ B** on the FollowJointTrajectory action interface.
+`send_trajectory_pnp.py` drives MoveIt by sending `moveit_msgs/action/MoveGroup` goals. Key parameters:
 
-Defaults:
-- `action_name`: `/arm_controller/follow_joint_trajectory`
-- `joints`: `["joint_one","joint_two","joint_three","joint_four","joint_five"]`
-- `positions_a`: `[0.5, 0.2, -0.3, 0.0, 0.1]`
-- `positions_b`: `[0.0, 0.0, 0.0, 0.0, 0.0]`
-- `duration_sec`: `0.5`
+- `action_name`: MoveGroup action name (default: `/move_action`)
+- `group_name`: MoveIt planning group (default is whatever your SRDF defines)
+- `base_frame`: planning frame (default: `base_link`)
+- `ee_link`: end-effector link name
+- `pose_a_xyz`, `pose_b_xyz`: target positions (meters) in `base_frame`
+- `pose_a_quat_xyzw`, `pose_b_quat_xyzw`: target orientations
+- tolerances: `position_tolerance`, `orientation_tolerance` (+ `constrain_orientation`)
+- planning settings: `allowed_planning_time`, `num_planning_attempts`, scaling factors
+- loop behavior: `loop_pause_sec`, `retry_on_failure`, `wait_for_server_timeout_sec`
 
-Run:
-
-```bash
-ros2 run catalyst send_trajectory
-```
-
-Override positions/duration:
+Run it manually with different tuning:
 
 ```bash
-ros2 run catalyst send_trajectory --ros-args \
-  -p duration_sec:=1.5 \
-  -p positions_a:="[0.2, 0.1, -0.6, 0.2, 0.0]" \
-  -p positions_b:="[0.0, 0.0, 0.0, 0.0, 0.0]"
+ros2 run Catalyst.send_trajectory_pnp --ros-args 
+  -p pose_a_xyz:='[0.40, 0.00, 0.25]' \  
+  -p pose_b_xyz:='[0.30, 0.20, 0.30]' \   
+  -p position_tolerance:=0.03 \  
+  -p max_velocity_scaling_factor:=0.10 \   
+  -p max_acceleration_scaling_factor:=0.10
 ```
-
-> Note: The action server must already be running (your ros2_control controller).  
-> If the action server is not available, the script will fail during startup.
 
 ---
 
-### 4) MoveIt “PnP” loop (pose goals A ↔ B)
-
-`send_trajectory_pnp.py` is a **MoveIt 2 MoveGroup action client** that alternates between two EE poses.
-
-Defaults:
-- `action_name`: `/move_action`
-- `group_name`: `"Catalyst_Manipulator"`
-- `base_frame`: `"base_link"`
-- `ee_link`: `"link_five"`
-- `pose_a_xyz`: `[0.10, -0.42, 0.18]`
-- `pose_b_xyz`: `[0.10, -0.34, 0.24]`
-- `max_velocity_scaling_factor`: `0.25`
-- `max_acceleration_scaling_factor`: `0.25`
-
-Run:
-
-```bash
-ros2 run catalyst send_trajectory_pnp
-```
-
-Example: slow it down and slightly relax tolerances:
-
-```bash
-ros2 run catalyst send_trajectory_pnp --ros-args \
-  -p max_velocity_scaling_factor:=0.15 \
-  -p max_acceleration_scaling_factor:=0.15 \
-  -p position_tolerance:=0.05
-```
-
-#### Known limitations (WIP)
-- “Pick & Place” here is **only motion between poses** (no grasping).
-- Planning can fail depending on scene/constraints. Script optionally retries once with relaxed constraints.
-- Because the arm is **5-DOF**, many full 6D pose goals are over‑constrained. If MoveIt planning fails with goal sampling / IK errors, try:
-  - using **position-only IK** (or relaxing orientation constraints),
-  - moving the goal closer / changing wrist configuration,
-  - simplifying the goal pose (position only) and letting orientation float.
-
-- **End effector/gripper is not integrated yet** (URDF/SRDF/controller interfaces still need to be extended).
-
----
-
-## ROS Interfaces used
-
-### Topics
-- `joint_states` — `sensor_msgs/JointState`
-
-### TF
-- `odom -> base_link` — broadcast by `state_publisher.py`
-
-### Actions
-- `/arm_controller/follow_joint_trajectory` — `control_msgs/action/FollowJointTrajectory`
-- `/move_action` — `moveit_msgs/action/MoveGroup`
-
-### Camera topics (defaults)
-- RGB: `/cam/rgb/image_raw`
-- Depth: `/cam/depth/image_raw`
-- Stereo left/right: `/cam/stereo/left/image_raw`, `/cam/stereo/right/image_raw`
-
----
-
-
----
-
-## Packaging notes (only if you don’t already have a ROS 2 package)
-
-`ros2 run` only works if this code is installed as a ROS 2 package.
-
-A minimal approach is to wrap these scripts in an **ament_python** package (example package name: `catalyst`):
-
-1) Create the package skeleton:
-
-```bash
-cd ~/ws_catalyst/src
-ros2 pkg create --build-type ament_python catalyst --dependencies rclpy sensor_msgs geometry_msgs tf2_ros control_msgs trajectory_msgs moveit_msgs
-```
-
-2) Copy the Python files into `catalyst/catalyst/` and keep a `__init__.py`.
-
-3) In `setup.py`, expose executables via `console_scripts`:
-
-```python
-entry_points={
-    "console_scripts": [
-        "state_publisher = catalyst.state_publisher:main",
-        "camera_viewer = catalyst.camera_viewer:main",
-        "send_trajectory = catalyst.send_trajectory:main",
-        "send_trajectory_pnp = catalyst.send_trajectory_pnp:main",
-    ],
-},
-```
-
-4) Rebuild + source again:
-
-```bash
-cd ~/ws_catalyst
-colcon build --symlink-install
-source install/setup.bash
-```
-
-After that, all commands in this README will work as `ros2 run catalyst <node>`.
-
-
-## Launch files
-
-This helper package itself does not ship launch files yet.  
-All nodes are currently run as standalone scripts (see commands above).
-
-**Recommended next step:** add a small `launch/` folder and create launch files like:
-- `state_publisher.launch.py`
-- `camera_viewer.launch.py`
-- `trajectory_sender.launch.py`
-- `moveit_pnp_loop.launch.py`
-
-(So you can set parameters cleanly and keep your terminal commands short.)
-
-In the broader *Catalyst* workspace, you may also have bringup launch files like:
-
-- `launch/moveit.launch.py` (MoveIt bringup / execution tuning)
-- `launch/pnp.launch.py` (Pick & Place test loop bringup)
-
-If those exist in your workspace, prefer launching them via:
-
-```bash
-ros2 launch <bringup_package> moveit.launch.py
-ros2 launch <bringup_package> pnp.launch.py
-```
-
-(Replace `<bringup_package>` with the package that contains the `launch/` directory.)
-
-
----
 
 ## End effector / gripper TODO
 
@@ -398,20 +411,43 @@ File: `config/Catalyst_controller.yaml`
 
 > When you add a real gripper/end-effector, revisit SRDF (EE group + parent link near tool), IK settings, and tolerances again.
 
-
 ---
 
-## Notes
+## Troubleshooting
 
-- `send_trajectory_pnp.py` includes a clean shutdown guard (`if rclpy.ok(): rclpy.shutdown()`) to avoid Ctrl‑C exceptions during iteration.
-- If your camera topics differ, run:
+### Controllers won’t start / action server not available
+
+- Check controller status:
   ```bash
-  ros2 topic list | grep -i image
+  ros2 control list_controllers
   ```
-  and update the viewer parameters.
-- If the MoveGroup action name differs in your MoveIt setup, override `action_name`.
+- Check the action server:
+  ```bash
+  ros2 action list | grep follow_joint_trajectory
+  ```
+
+### No camera frames
+
+- Confirm the camera rig is spawned and topics exist:
+  ```bash
+  ros2 topic list | grep /cam
+  ```
+- Use BEST_EFFORT QoS when echoing:
+  ```bash
+  ros2 topic echo /cam/rgb/image_raw --qos-reliability best_effort
+  ```
+- Make sure the **Sensors** system plugin is in your world.
+
+### Sim time /clock problems
+
+- Make sure `/clock` is bridged:
+  ```bash
+  ros2 topic echo /clock
+  ```
 
 ---
 
+## Next steps (recommended improvements)
 
-
+- Consider adding a dedicated `camera.launch.py` to re-use the camera rig + bridge in all worlds.
+- Make the MoveIt demo more robust (perception-based target acquisition, collision tuning, etc.).
