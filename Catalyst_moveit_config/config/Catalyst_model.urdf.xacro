@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="Catalyst_model">
+    <xacro:arg name="initial_positions_file" default="initial_positions.yaml" />
+    <xacro:arg name="use_mock_hardware" default="true" />
+
+    <!-- Import Catalyst_model urdf file -->
+    <xacro:include filename="$(find Catalyst)/urdf/Catalyst.urdf.xml" />
+
+    <!-- Import control_xacro -->
+    <xacro:include filename="Catalyst_model.ros2_control.xacro" />
+
+    <!-- <xacro:Catalyst_model_ros2_control name="FakeSystem" initial_positions_file="$(arg initial_positions_file)"/> -->
+
+    <xacro:if value="$(arg use_mock_hardware)">
+        <xacro:Catalyst_model_ros2_control
+            name="FakeSystem"
+            initial_positions_file="$(arg initial_positions_file)"
+        />
+    </xacro:if>
+
+</robot>

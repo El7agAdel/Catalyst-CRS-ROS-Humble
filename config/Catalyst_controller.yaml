@@ -1,0 +1,45 @@
+# Catalyst/config/controllers.yaml
+#
+# Works with gz_ros2_control (Gazebo Fortress / Garden+) and ROS 2 Humble+.
+# URDF provides position command + position/velocity state for joints.
+controller_manager:
+  ros__parameters:
+    update_rate: 500  # Hz; faster command updates for snappier tracking
+
+    # --- Controllers to load ---
+    arm_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    arm_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+
+# --- Joint Trajectory Controller (position control) ---
+arm_controller:
+  ros__parameters:
+    joints:
+      - joint_one
+      - joint_two
+      - joint_three
+      - joint_four
+      - joint_five
+
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+
+    allow_partial_joints_goal: false
+    allow_nonzero_velocity_at_trajectory_end: false
+    constraints:
+      goal_time: 1.0
+      stopped_velocity_tolerance: 0.03
+      # Slightly relaxed to avoid PATH_TOLERANCE_VIOLATED from tiny sim tracking drift.
+      joint_one: { trajectory: 0.12, goal: 0.03 }
+      joint_two: { trajectory: 0.12, goal: 0.03 }
+      joint_three: { trajectory: 0.12, goal: 0.03 }
+      joint_four: { trajectory: 0.12, goal: 0.03 }
+      joint_five: { trajectory: 0.15, goal: 0.04 }
+    interpolation_method: splines
+    stop_trajectory_duration: 0.2

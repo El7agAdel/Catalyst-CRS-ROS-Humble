@@ -1,0 +1,555 @@
+<?xml version="1.0"?>
+<robot name="Catalyst_model" >
+
+  <material name="mat_orange"><color rgba="1.0 0.5 0.0 1.0"/></material>
+  <material name="mat_steel"><color rgba="0.55 0.55 0.60 1.0"/></material>
+  <material name="mat_blue"><color rgba="0.15 0.35 0.85 1.0"/></material>
+  <material name="mat_green"><color rgba="0.00 0.70 0.25 1.0"/></material>
+  <material name="mat_red"><color rgba="0.85 0.20 0.15 1.0"/></material>
+  <material name="mat_black"><color rgba="0.02 0.02 0.02 1.0"/></material>
+
+  <link name="world"/>
+
+  <joint name="world_to_base" type="fixed">
+    <parent link="world"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+    
+  <link name="base_link">
+    
+        
+
+    <inertial>
+      
+            
+      <origin xyz="1.4366E-05 0.032001 -0.0036111" rpy="0 0 0"/>
+      
+            
+      <mass value="0.7754"/>
+      
+            
+      <inertia ixx="0.0030433" ixy="-1.7675E-07" ixz="9.851E-07" iyy="0.0049019" iyz="8.2834E-05" izz="0.0028993"/>
+      
+        
+    </inertial>
+    
+
+        
+    <visual>
+      
+            
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      
+            
+      <geometry>
+        
+                
+        <mesh filename="package://Catalyst/urdf/meshes/base_link.STL"/>
+            
+      </geometry>
+      
+            
+      <material name="mat_steel"/>
+      
+        
+    </visual>
+    
+        
+    <collision>
+      
+            
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      
+            
+      <geometry>
+        
+                
+        <mesh filename="package://Catalyst/urdf/meshes/base_link.STL"/>
+        
+            
+      </geometry>
+      
+        
+    </collision>
+    
+    
+  </link>
+  
+    
+  <link name="link_one">
+    
+        
+
+    <inertial>
+      
+            
+      <origin xyz="-0.00010208 0.15352 -0.064045" rpy="0 0 0"/>
+      
+            
+      <mass value="0.59657"/>
+      
+            
+      <inertia ixx="0.0026007" ixy="-6.7551E-08" ixz="-1.9538E-07" iyy="0.0021318" iyz="0.00027847" izz="0.0021414"/>
+      
+        
+    </inertial>
+    
+
+        
+    <visual>
+      
+            
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      
+            
+      <geometry>
+        
+                
+        <mesh filename="package://Catalyst/urdf/meshes/link_one.STL"/>
+        
+            
+      </geometry>
+      
+            
+      <material name="mat_orange"/>
+      
+        
+    </visual>
+    
+        
+    <collision>
+      
+            
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      
+            
+      <geometry>
+        
+                
+        <mesh filename="package://Catalyst/urdf/meshes/link_one.STL"/>
+        
+            
+      </geometry>
+      
+        
+    </collision>
+    
+    
+  </link>
+  
+    
+  <joint name="joint_one" type="revolute">
+    
+        
+    <origin xyz="0 0 0.084303" rpy="1.5708 0 0.13545"/>
+    
+        
+    <parent link="base_link"/>
+    
+        
+    <child link="link_one"/>
+    
+        
+    <axis xyz="0 1 0"/>
+    
+        
+    <limit lower="-3.1415" upper="3.1415" effort="9.6" velocity="210"/>
+    
+    
+  </joint>
+  
+    
+  <link name="link_two">
+    
+        
+
+    <inertial>
+      
+            
+      <origin xyz="5.3743E-05 0.088952 0.088364" rpy="0 0 0"/>
+      
+            
+      <mass value="0.46917"/>
+      
+            
+      <inertia ixx="0.0033549" ixy="-2.5511E-08" ixz="-1.3875E-08" iyy="0.0017138" iyz="-0.0013947" izz="0.0017032"/>
+      
+        
+    </inertial>
+    
+
+        
+    <visual>
+      
+            
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      
+            
+      <geometry>
+        
+                
+        <mesh filename="package://Catalyst/urdf/meshes/link_two.STL"/>
+        
+            
+      </geometry>
+      
+            
+      <material name="mat_blue"/>
+      
+        
+    </visual>
+    
+        
+    <collision>
+      
+            
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      
+            
+      <geometry>
+        
+                
+        <mesh filename="package://Catalyst/urdf/meshes/link_two.STL"/>
+        
+            
+      </geometry>
+      
+        
+    </collision>
+    
+    
+  </link>
+  
+    
+  <joint name="joint_two" type="revolute">
+    
+        
+    <origin xyz="0 0.16899 0" rpy="0.33563 0 0"/>
+    
+        
+    <parent link="link_one"/>
+    
+        
+    <child link="link_two"/>
+    
+        
+    <axis xyz="1 0 0"/>
+    
+        
+    <limit lower="-0.45" upper="0.65" effort="9.6" velocity="210"/>
+    
+    
+  </joint>
+  
+    
+  <link name="link_three">
+    
+        
+
+    <inertial>
+      
+            
+      <origin xyz="0.00019695 -0.090954 0.093868" rpy="0 0 0"/>
+      
+            
+      <mass value="0.27264"/>
+      
+            
+      <inertia ixx="0.0017294" ixy="6.9843E-08" ixz="-5.8994E-08" iyy="0.0008437" iyz="0.00075643" izz="0.00092514"/>
+      
+        
+    </inertial>
+    
+
+        
+    <visual>
+      
+            
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      
+            
+      <geometry>
+        
+                
+        <mesh filename="package://Catalyst/urdf/meshes/link_three.STL"/>
+        
+            
+      </geometry>
+      
+            
+      <material name="mat_green"/>
+      
+        
+    </visual>
+    
+        
+    <collision>
+      
+            
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      
+            
+      <geometry>
+        
+                
+        <mesh filename="package://Catalyst/urdf/meshes/link_three.STL"/>
+        
+            
+      </geometry>
+      
+        
+    </collision>
+    
+    
+  </link>
+  
+    
+  <joint name="joint_three" type="revolute">
+    
+        
+    <origin xyz="0 0.1796 0.1796" rpy="-0.37827 0 0"/>
+    
+        
+    <parent link="link_two"/>
+    
+        
+    <child link="link_three"/>
+    
+        
+    <axis xyz="1 0 0"/>
+    
+        
+    <limit lower="-2.1815" upper="0.95" effort="9.6" velocity="210"/>
+    
+    
+  </joint>
+  
+    
+  <link name="link_four">
+    
+        
+
+    <inertial>
+      
+            
+      <origin xyz="-2.505E-05 0.0010929 -2.1319E-09" rpy="0 0 0"/>
+      
+            
+      <mass value="0.067274"/>
+      
+            
+      <inertia ixx="2.3072E-05" ixy="9.2584E-09" ixz="1.0641E-11" iyy="1.9164E-05" iyz="-5.4005E-12" izz="1.7484E-05"/>
+      
+        
+    </inertial>
+    
+
+        
+    <visual>
+      
+            
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      
+            
+      <geometry>
+        
+                
+        <mesh filename="package://Catalyst/urdf/meshes/link_four.STL"/>
+        
+            
+      </geometry>
+      
+            
+      <material name="mat_red"/>
+      
+        
+    </visual>
+    
+        
+    <collision>
+      
+            
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      
+            
+      <geometry>
+        
+                
+        <mesh filename="package://Catalyst/urdf/meshes/link_four.STL"/>
+        
+            
+      </geometry>
+      
+        
+    </collision>
+    
+    
+  </link>
+  
+    
+  <joint name="joint_four" type="revolute">
+    
+        
+    <origin xyz="0 -0.17961 0.17961" rpy="-1.0515 0 0"/>
+    
+        
+    <parent link="link_three"/>
+    
+        
+    <child link="link_four"/>
+    
+        
+    <axis xyz="1 0 0"/>
+    
+        
+    <limit lower="-1.65" upper="1.9198" effort="3.4" velocity="551"/>
+    
+    
+  </joint>
+  
+    
+  <link name="link_five">
+    
+        
+
+    <inertial>
+      
+            
+      <origin xyz="1.1102E-16 -0.018145 8.3267E-16" rpy="0 0 0"/>
+      
+            
+      <mass value="0.0204"/>
+      
+            
+      <inertia ixx="3.5666E-06" ixy="-7.8965E-19" ixz="4.9578E-20" iyy="4.5325E-06" iyz="-6.4057E-21" izz="3.6708E-06"/>
+      
+        
+    </inertial>
+    
+
+        
+    <visual>
+      
+            
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      
+            
+      <geometry>
+        
+                
+        <mesh filename="package://Catalyst/urdf/meshes/link_five.STL"/>
+        
+            
+      </geometry>
+      
+            
+      <material name="mat_black"/>
+      
+        
+    </visual>
+    
+        
+    <collision>
+      
+            
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      
+            
+      <geometry>
+        
+                
+        <mesh filename="package://Catalyst/urdf/meshes/link_five.STL"/>
+        
+            
+      </geometry>
+      
+        
+    </collision>
+    
+    
+  </link>
+  
+    
+  <joint name="joint_five" type="revolute">
+    
+        
+    <origin xyz="0 -0.022626 0" rpy="0 0.91104 0"/>
+    
+        
+    <parent link="link_four"/>
+    
+        
+    <child link="link_five"/>
+    
+        
+    <axis xyz="0 1 0"/>
+    
+        
+    <limit lower="-3.1415" upper="3.1415" effort="1.7" velocity="1102"/>
+    
+    
+  </joint>
+  
+
+  <!-- ros2_control hardware for Gazebo (Fortress) -->
+<ros2_control name="GazeboSimSystem" type="system">
+  <hardware>
+    <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+    <param name="position_proportional_gain">0.6</param>
+  </hardware>
+
+  <!-- Your joints (position control) -->
+  <joint name="joint_one">
+    <command_interface name="position">
+      <param name="position_proportional_gain">0.6</param>
+    </command_interface>
+    <state_interface name="position"/>
+    <state_interface name="velocity"/>
+  </joint>
+  <joint name="joint_two">
+    <command_interface name="position">
+      <param name="position_proportional_gain">0.6</param>
+    </command_interface>
+    <state_interface name="position"/>
+    <state_interface name="velocity"/>
+  </joint>
+  <joint name="joint_three">
+    <command_interface name="position">
+      <param name="position_proportional_gain">0.6</param>
+    </command_interface>
+    <state_interface name="position"/>
+    <state_interface name="velocity"/>
+  </joint>
+  <joint name="joint_four">
+    <command_interface name="position">
+      <param name="position_proportional_gain">0.6</param>
+    </command_interface>
+    <state_interface name="position"/>
+    <state_interface name="velocity"/>
+  </joint>
+  <joint name="joint_five">
+    <command_interface name="position">
+      <param name="position_proportional_gain">0.6</param>
+    </command_interface>
+    <state_interface name="position"/>
+    <state_interface name="velocity"/>
+  </joint>
+</ros2_control>
+
+<!-- Load the Gazebo-Sim (Fortress) control plugin -->
+<gazebo>
+  <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+  <!-- <plugin filename="ign_ros2_control-system" name="ign_ros2_control::IgnitionROS2ControlPlugin"> -->
+
+    <!-- optional: where to read robot_description from -->
+    <robot_param>robot_description</robot_param>
+    <robot_param_node>robot_state_publisher</robot_param_node>
+    <!-- point to your controllers YAML (see step 3) -->
+    <parameters>./Catalyst/config/Catalyst_controller.yaml</parameters>
+  </plugin>
+</gazebo>
+
+
+
+</robot>
