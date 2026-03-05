@@ -14,6 +14,18 @@ This repo is a small collection of **ROS 2 (rclpy) helper nodes** used around th
 > - **Velocity & acceleration profiles were heavily edited** compared to the original baseline values.
 >   The current known edits are summarized in **Motion profile tuning (velocity & acceleration)** below.
 
+
+## Demo video
+
+
+
+
+https://github.com/user-attachments/assets/fa072503-8ad9-4ba6-b8ab-829e8f4bf1de
+
+
+
+
+
 ---
 
 ## Repository layout
