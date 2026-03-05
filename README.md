@@ -11,7 +11,12 @@ This repository contains a **ROS 2 simulation + MoveIt 2 planning setup** for th
 
 ## Demo video
 
-https://github.com/user-attachments/assets/fa072503-8ad9-4ba6-b8ab-829e8f4bf1de
+
+
+https://github.com/user-attachments/assets/a5c5ca45-b9bf-4b95-a422-5383cf0b0c90
+
+
+
 ---
 
 ## Repo layout
