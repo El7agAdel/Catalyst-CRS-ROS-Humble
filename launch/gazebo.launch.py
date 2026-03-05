@@ -19,7 +19,7 @@ def generate_launch_description():
     world = LaunchConfiguration('world')
 
 
-    camera_urdf = os.path.join(get_package_share_directory("IRB120"), "urdf/camera.sdf")
+    camera_urdf = os.path.join(get_package_share_directory("Catalyst"), "urdf/camera.sdf")
     view_camera = LaunchConfiguration('view_camera', default='false')
     camera_topic = LaunchConfiguration('camera_topic', default='/cam/rgb/image_raw')
 
@@ -132,7 +132,7 @@ def generate_launch_description():
     clock_bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
-        arguments=['/clock@rosgraph_msgs/msg/Clock@gz.msgs.Clock'],
+        arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
         output='screen'
     )
 
