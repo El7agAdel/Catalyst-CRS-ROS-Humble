@@ -7,7 +7,7 @@ This repo is a small collection of **ROS 2 (rclpy) helper nodes** used around th
   - **JointTrajectory** goals (controller action interface), or
   - **MoveIt 2 MoveGroup** pose goals (a simple “PnP loop”).
 
-> **Important**
+>  ⚠️ **Important**
 > - **End effector is not added yet** (e.g., a **gripper**). Current scripts assume the kinematic chain ends at `link_five`.
 > - The “pick & place” loop is **still clunky / not fully perfect** (WIP). It moves between poses, but planning/constraints may fail and there’s no grasping logic yet.
 > - Some of the PnP roughness is due to **inverse kinematics limits** (the arm is 5‑DOF, so many full 6D pose goals are over‑constrained).
@@ -349,17 +349,17 @@ Motion speed in the *Catalyst* stack was **heavily edited** from the original ba
 **A) MoveIt global scaling (planning/execution defaults)**  
 File: `Catalyst_moveit_config/config/joint_limits.yaml`
 
-- `default_velocity_scaling_factor`: `0.1 → 0.7 → 1.0`
-- `default_acceleration_scaling_factor`: `0.1 → 0.6 → 1.0`
+- `default_velocity_scaling_factor`: `0.1 → 1.0`
+- `default_acceleration_scaling_factor`: `0.1 → 1.0`
 
 **B) Joint acceleration limits enabled + raised**  
 File: `Catalyst_moveit_config/config/joint_limits.yaml`
 
 - `has_acceleration_limits`: `false → true` (all joints)
 - Final `max_acceleration`:
-  - `joint_one / joint_two / joint_three`: `8.0`
-  - `joint_four`: `12.0`
-  - `joint_five`: `16.0`
+  - `joint_one / joint_two / joint_three`: `0.0 → 8.0`
+  - `joint_four`: `0.0 → 12.0`
+  - `joint_five`: `0.0 → 16.0`
 
 **C) Controller loop updated faster**  
 File: `config/Catalyst_controller.yaml`
@@ -413,6 +413,5 @@ File: `config/Catalyst_controller.yaml`
 
 ---
 
-## License
-Add your license here (or keep private/internal).
+
 
