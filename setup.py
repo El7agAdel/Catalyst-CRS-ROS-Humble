@@ -32,7 +32,6 @@ setup(
         'console_scripts': [
             'state_publisher = Catalyst.state_publisher:main',
             'send_trajectory = Catalyst.send_trajectory:main',
-            'send_trajectory_moveit = Catalyst.send_trajectory_moveit:main',
             'camera_viewer = Catalyst.camera_viewer:main',
         ],
     },
